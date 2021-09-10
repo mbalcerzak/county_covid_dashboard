@@ -45,6 +45,8 @@ def get_location_names():
     url_loc = "https://raw.githubusercontent.com/reichlab/covid19-forecast-hub/master/data-locations/locations.csv"
     loc_dict = {}
 
+    random.seed=42
+
     df = pd.read_csv(url_loc)
     print(df.head())
 
@@ -59,7 +61,7 @@ def get_location_names():
 
     loc_dict_states = { k: f"{locations[k]}" for k in state_keys }
 
-    locations_sample = random.sample(loc_dict.keys(), 10)
+    sample_counties_list = random.sample(loc_dict.keys(), 10)
 
     with open('./data/locations.json', 'w') as f:
         json.dump(loc_dict, f)
@@ -67,8 +69,8 @@ def get_location_names():
     with open('./data/locations_states.json', 'w') as f:
         json.dump(loc_dict_states, f)
 
-    with open('./data/sample/locations_sample.json', 'w') as f:
-        json.dump(locations_sample, f)
+    # with open('./data/sample/sample_counties_list.json', 'w') as f:
+    #     json.dump(sample_counties_list, f)
 
 
 def get_new_county_cases():
@@ -118,4 +120,4 @@ def get_locations_name_sample():
 
 
 if __name__ == "__main__":
-    get_location_names()
+    get_locations_name_sample()
