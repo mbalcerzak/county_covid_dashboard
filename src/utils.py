@@ -120,4 +120,4 @@ def get_locations_name_sample():
 
 
 if __name__ == "__main__":
-    get_locations_name_sample()
+    select_sample_new_cases()
