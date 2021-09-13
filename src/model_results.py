@@ -1,3 +1,4 @@
+from genericpath import isdir
 from posixpath import dirname
 from random import sample
 import pandas as pd
@@ -15,32 +16,100 @@ def get_sample_counties_list():
 
 def get_predictions():
     """Loads predictions from a selected model from ReichlabCovidPredictions"""
-    folder_path = '/Users/malgorzatabslcerzak/Documents/projects/covid19-forecast-hub/data-processed/CEID-Walk'
-    file_list = [x for x in os.listdir(folder_path) if '.csv' in x]
+    folder_path = f'/Users/malgorzatabslcerzak/Documents/projects/covid19-forecast-hub/data-processed'
+    model_list_path = '/Users/malgorzatabslcerzak/Documents/projects/county_covid_dashboard/data/model_list.json'
+
+    with open(model_list_path,'r') as f:
+        model_list = json.load(f)
 
     sample_counties = get_sample_counties_list()
-    county_predicted_cases_sample = defaultdict(dict)
 
-    for file in file_list:
-        df = pd.read_csv(f"{folder_path}/{file}")
-        df = df.loc[(df['target'] == '4 wk ahead inc case') & (df['type'] == 'point')]
+    for model in model_list:
+        file_list = [x for x in os.listdir(f'{folder_path}/{model}') if '.csv' in x]
+        county_predicted_cases_sample = defaultdict(dict)
 
-        # For sample counties only
-        df['location'] = df['location'].apply(lambda x: x.lstrip('0'))
-        df = df.loc[df['location'].isin(sample_counties)]
+        for file in file_list:
+            df = pd.read_csv(f"{folder_path}/{model}/{file}")
+            df = df.loc[(df['target'] == '4 wk ahead inc case') & (df['type'] == 'point')]
 
-        for county in sample_counties:
-            data = df[df['location'] == county]
+            # For sample counties only
+            df['location'] = df['location'].apply(lambda x: str(x).lstrip('0'))
+            df = df.loc[df['location'].isin(sample_counties)]
 
-            for date in data['target_end_date']:
-                value = data['value'].loc[data['target_end_date'] == date]
-                value = list(value)[0]
+            for county in sample_counties:
+                data = df[df['location'] == county]
 
-                county_predicted_cases_sample[county][date] = value
+                for date in data['target_end_date']:
+                    value = data['value'].loc[data['target_end_date'] == date]
+                    value = list(value)[0]
 
-    with open('data/sample/county_predicted_cases_sample.json', 'w') as f:
-        json.dump(county_predicted_cases_sample, f)
+                    county_predicted_cases_sample[county][date] = value
+
+        if len(county_predicted_cases_sample) > 0:
+            if set(sample_counties).issubset(set(county_predicted_cases_sample)):
+                print(f"All counties found {model}")
+                with open(f'data/sample/model_results/{model}.json', 'w') as f:
+                    json.dump(county_predicted_cases_sample, f)
+            else:
+                print(f"Not all counties found {model}")
+        else:
+            print(f"Empty county dict {model}")
+
+
+def get_model_list():
+    """Include onluy models that have data for '4 wk ahead inc case' """
+    folder_path = f'/Users/malgorzatabslcerzak/Documents/projects/covid19-forecast-hub/data-processed'
+    folder_list = [x for x in os.listdir(folder_path) if isdir(f'{folder_path}/{x}')]
+
+    with open('data/licenses.json', 'r') as f:
+        licenses = json.load(f)
+    
+    model_list = []
+
+    acceptable_licenses = ["cc-by-4.0", "mit", "apache-2.0", "gpl-3.0"]
+    model_ok_license = [x for x in folder_list if licenses[x] in acceptable_licenses]
+
+    print(f"{len(model_ok_license)} models have acceptable license out of {len(folder_list)}")
+
+    for model in model_ok_license:
+        file_list = [x for x in os.listdir(f"{folder_path}/{model}") if '.csv' in x]
+        if file_list:
+            file = file_list[0]
+            df = pd.read_csv(f"{folder_path}/{model}/{file}")
+            df = df.loc[(df['target'] == '4 wk ahead inc case') & (df['type'] == 'point')]
+
+        if len(df):
+            model_list.append(model)
+
+    with open(f'data/model_list.json', 'w') as f:
+        json.dump(model_list, f)  
+
+
+def get_model_licenses():
+    """Include onluy models that allow for commercial use"""
+    folder_path = f'/Users/malgorzatabslcerzak/Documents/projects/covid19-forecast-hub/data-processed'
+    folder_list = [x for x in os.listdir(folder_path) if isdir(f'{folder_path}/{x}')]
+  
+    licenses = {}
+
+    for folder in folder_list:
+        file_list = [x for x in os.listdir(f"{folder_path}/{folder}") if '.txt' in x]
+
+        for file in file_list:
+            with open(f"{folder_path}/{folder}/{file}",'r') as f:
+                for line in  f.readlines():
+                    if 'license:' in line:
+                        print(f"{folder} --- {line}")
+
+                        licenses[folder] = line.split(':')[-1].replace('\n','').strip()
+
+
+    with open('data/licenses.json', 'w') as f:
+        json.dump(licenses, f)
 
 
 if __name__ == "__main__":
     get_predictions()
+
+    # get_model_list()
+    # get_model_licenses()
