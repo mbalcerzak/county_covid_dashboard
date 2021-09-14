@@ -1,7 +1,18 @@
+from collections import defaultdict
 import urllib.request
 import json 
 import pandas as pd
 import random
+
+
+def covid_repo_path():
+    with open('config.json','r') as f:
+        return json.load(f)
+
+
+def get_counties_population():
+    with open("data/populations.json", "r") as f:
+       return json.load(f)
 
 
 def get_random_counties():
@@ -119,5 +130,39 @@ def get_locations_name_sample():
         json.dump(sample_location_names, f) 
 
 
+def get_population():
+    location_path = f'{covid_repo_path()}/data-locations/locations.csv'
+    df = pd.read_csv(location_path)
+
+    locations = df['location'].apply(lambda x: x.lstrip('0'))
+    populations = df['population'].apply(lambda x: str(x).rstrip('.0'))
+    populations = dict(zip(locations, populations))
+
+    with open('data/populations.json', 'w') as f:
+        json.dump(populations, f) 
+
+
+def get_true_cases_prc():
+    """JSON with new cases as a percent of population in each county"""
+    with open('data/sample/county_true_cases_sample.json', 'r') as f:
+        true_cases = json.load(f)
+
+    populations = get_counties_population()
+    print(populations)
+    true_cases_prc = defaultdict(dict)
+
+    for county, value in true_cases.items():
+        print(county)
+        pop = int(populations[county])
+        true_cases_prc[county] = {key: (int(value[key])*10000 / pop) for key in value}
+
+    with open('data/true_cases_prc.json', 'w') as f:
+        json.dump(true_cases_prc, f) 
+
+
+
+
+
 if __name__ == "__main__":
-    select_sample_new_cases()
+    # get_population()
+    get_true_cases_prc()

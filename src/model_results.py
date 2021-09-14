@@ -1,32 +1,32 @@
 from genericpath import isdir
-from posixpath import dirname
-from random import sample
 import pandas as pd
 import os
 import json
 from collections import defaultdict
+from utils import covid_repo_path, get_counties_population
 
 
 def get_sample_counties_list():
     path = 'data/sample/sample_counties_list.json'
-
     with open(path, 'r') as f:
         return json.load(f)
 
 
 def get_predictions():
     """Loads predictions from a selected model from ReichlabCovidPredictions"""
-    folder_path = f'/Users/malgorzatabslcerzak/Documents/projects/covid19-forecast-hub/data-processed'
-    model_list_path = '/Users/malgorzatabslcerzak/Documents/projects/county_covid_dashboard/data/model_list.json'
+    folder_path = f'{covid_repo_path()}/data-processed'
+    model_list_path = 'data/model_list.json'
 
     with open(model_list_path,'r') as f:
         model_list = json.load(f)
 
     sample_counties = get_sample_counties_list()
+    populations = get_counties_population()
 
     for model in model_list:
         file_list = [x for x in os.listdir(f'{folder_path}/{model}') if '.csv' in x]
         county_predicted_cases_sample = defaultdict(dict)
+        county_predicted_cases_prc = defaultdict(dict)
 
         for file in file_list:
             df = pd.read_csv(f"{folder_path}/{model}/{file}")
@@ -44,12 +44,15 @@ def get_predictions():
                     value = list(value)[0]
 
                     county_predicted_cases_sample[county][date] = value
+                    county_predicted_cases_prc[county][date] = float(value)*10000 / float(populations[county])
 
         if len(county_predicted_cases_sample) > 0:
             if set(sample_counties).issubset(set(county_predicted_cases_sample)):
                 print(f"All counties found {model}")
                 with open(f'data/sample/model_results/{model}.json', 'w') as f:
                     json.dump(county_predicted_cases_sample, f)
+                with open(f'data/sample/model_results/{model}_prc.json', 'w') as f:
+                    json.dump(county_predicted_cases_prc, f)
             else:
                 print(f"Not all counties found {model}")
         else:
@@ -58,7 +61,7 @@ def get_predictions():
 
 def get_model_list():
     """Include onluy models that have data for '4 wk ahead inc case' """
-    folder_path = f'/Users/malgorzatabslcerzak/Documents/projects/covid19-forecast-hub/data-processed'
+    folder_path = f'{covid_repo_path()}/data-processed'
     folder_list = [x for x in os.listdir(folder_path) if isdir(f'{folder_path}/{x}')]
 
     with open('data/licenses.json', 'r') as f:
@@ -87,7 +90,7 @@ def get_model_list():
 
 def get_model_licenses():
     """Include onluy models that allow for commercial use"""
-    folder_path = f'/Users/malgorzatabslcerzak/Documents/projects/covid19-forecast-hub/data-processed'
+    folder_path = f'{covid_repo_path()}/data-processed'
     folder_list = [x for x in os.listdir(folder_path) if isdir(f'{folder_path}/{x}')]
   
     licenses = {}

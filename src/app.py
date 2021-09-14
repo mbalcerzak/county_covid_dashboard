@@ -16,8 +16,18 @@ def get_true_cases():
        return json.load(f)
 
 @st.cache
+def get_true_cases_prc():
+    with open("data/true_cases_prc.json", "r") as f:
+       return json.load(f)
+
+@st.cache
 def get_predicted_cases(model):
     with open(f"data/sample/model_results/{model}.json", "r") as f:
+       return json.load(f)
+
+@st.cache
+def get_predicted_cases_prc(model):
+    with open(f"data/sample/model_results/{model}_prc.json", "r") as f:
        return json.load(f)
 
 @st.cache
@@ -26,8 +36,13 @@ def get_vacc_rates():
        return json.load(f)
 
 @st.cache
+def get_population():
+    with open("data/populations.json", "r") as f:
+       return json.load(f)
+
+@st.cache
 def get_models():
-    return [x.rstrip('.json') for x in os.listdir('data/sample/model_results')]
+    return [x.rstrip('.json') for x in os.listdir('data/sample/model_results') if 'prc' not in x]
 
 def get_county_df(df, county, colname):
     df = df[county]
@@ -35,25 +50,32 @@ def get_county_df(df, county, colname):
     cases = df.values()
     return pd.DataFrame(list(zip(dates, cases)), columns=['date',colname])
 
+def get_county_name(x):
+    return counties[x]
+
 
 counties = get_locations_json()
 vacc_rates = get_vacc_rates()
 models = get_models()
+populations = get_population()
 
 st.sidebar.markdown("[by MAB](https://github.com/mbalcerzak)")
-county_selected = st.sidebar.selectbox('Select county FIPS number: ', sorted(counties, key=int))
+county_selected = st.sidebar.selectbox(
+    'Select county FIPS number: ', 
+    sorted(counties, key=int), 
+    format_func=get_county_name)
 model = st.sidebar.selectbox('Select which model would you like to see: ', sorted(models))
 
 county_name = counties[county_selected]
 
 data_t = get_true_cases()
-data_true = get_county_df(data_t, county_selected, 'value_true')
+data_true = get_county_df(data_t, county_selected, 'True')
 
 data_p = get_predicted_cases(model)
-data_pred = get_county_df(data_p, county_selected, 'value_pred')
+data_pred = get_county_df(data_p, county_selected, 'Predicted')
 
-st.header(f'Predicted and True cases: {county_name}')
-st.write("Model selected: CEID-Walk")
+st.header('Predicted and True new COVID cases')
+st.subheader(f'{county_name}')
 
 df_both = pd.merge(left=data_true, right=data_pred, on='date', how='inner')
 df_both['date'] = pd.to_datetime(df_both['date'],format='%Y-%m-%d', errors='ignore')
@@ -61,5 +83,23 @@ df_both = df_both.rename(columns={'date':'index'}).set_index('index')
 
 st.line_chart(df_both)
 
+population = populations[county_selected]
+st.write(f"Population: {population}")
+
+# data_t_prc = get_true_cases_prc()
+# data_t_prc = get_county_df(data_t_prc, county_selected, 'True')
+
+# data_p_prc = get_predicted_cases_prc(model)
+# data_p_prc = get_county_df(data_p_prc, county_selected, 'Predicted')
+
+# df_both_prc = pd.merge(left=data_t_prc, right=data_p_prc, on='date', how='inner')
+# df_both_prc['date'] = pd.to_datetime(df_both_prc['date'],format='%Y-%m-%d', errors='ignore')
+# df_both_prc = df_both_prc.rename(columns={'date':'index'}).set_index('index')
+
+# st.header('True and predicted cases relative to the population (per 10 000 people)')
+# st.line_chart(df_both_prc)
+
 st.subheader('Vaccination rates for the area')
 st.write(f'Fully vaccinated in {county_name}: {vacc_rates[county_selected]} %')
+
+# Add graph presenting it as a percent of the population
