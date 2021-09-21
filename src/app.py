@@ -68,38 +68,42 @@ model = st.sidebar.selectbox('Select which model would you like to see: ', sorte
 
 county_name = counties[county_selected]
 
+
+# Nominal cases
 data_t = get_true_cases()
 data_true = get_county_df(data_t, county_selected, 'True')
 
 data_p = get_predicted_cases(model)
 data_pred = get_county_df(data_p, county_selected, 'Predicted')
 
-st.header('Predicted and True new COVID cases')
-st.subheader(f'{county_name}')
-
 df_both = pd.merge(left=data_true, right=data_pred, on='date', how='inner')
 df_both['date'] = pd.to_datetime(df_both['date'],format='%Y-%m-%d', errors='ignore')
 df_both = df_both.rename(columns={'date':'index'}).set_index('index')
 
-st.line_chart(df_both)
+# Proportional cases
+data_t_prc = get_true_cases_prc()
+data_t_prc = get_county_df(data_t_prc, county_selected, 'True')
+
+data_p_prc = get_predicted_cases_prc(model)
+data_p_prc = get_county_df(data_p_prc, county_selected, 'Predicted')
+
+df_both_prc = pd.merge(left=data_t_prc, right=data_p_prc, on='date', how='inner')
+df_both_prc['date'] = pd.to_datetime(df_both_prc['date'],format='%Y-%m-%d', errors='ignore')
+df_both_prc = df_both_prc.rename(columns={'date':'index'}).set_index('index')
+
+st.header(f'{county_name}')
+as_prc = st.radio("Data presentation", ('Nominal', 'Per 10 000 inhabitants'))
+
+if as_prc == 'Nominal':
+    st.subheader('Predicted and True new COVID cases')
+    st.line_chart(df_both)
+
+else:
+    st.subheader('Predicted and True new COVID cases relative to the population (per 10 000 people)')
+    st.line_chart(df_both_prc)
 
 population = populations[county_selected]
 st.write(f"Population: {population}")
 
-# data_t_prc = get_true_cases_prc()
-# data_t_prc = get_county_df(data_t_prc, county_selected, 'True')
-
-# data_p_prc = get_predicted_cases_prc(model)
-# data_p_prc = get_county_df(data_p_prc, county_selected, 'Predicted')
-
-# df_both_prc = pd.merge(left=data_t_prc, right=data_p_prc, on='date', how='inner')
-# df_both_prc['date'] = pd.to_datetime(df_both_prc['date'],format='%Y-%m-%d', errors='ignore')
-# df_both_prc = df_both_prc.rename(columns={'date':'index'}).set_index('index')
-
-# st.header('True and predicted cases relative to the population (per 10 000 people)')
-# st.line_chart(df_both_prc)
-
 st.subheader('Vaccination rates for the area')
 st.write(f'Fully vaccinated in {county_name}: {vacc_rates[county_selected]} %')
-
-# Add graph presenting it as a percent of the population
