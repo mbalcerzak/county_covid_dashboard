@@ -70,7 +70,7 @@ populations = get_population()
 
 # st.sidebar.markdown("[by MAB](https://github.com/mbalcerzak)")
 county_selected = st.sidebar.selectbox(
-    'Select county FIPS number: ', 
+    'Select county: ', 
     sorted(counties, key=int), 
     format_func=get_county_name)
 model = st.sidebar.selectbox('Select which model would you like to see: ', sorted(models))
@@ -100,7 +100,7 @@ df_both_prc['date'] = pd.to_datetime(df_both_prc['date'],format='%Y-%m-%d', erro
 df_both_prc = df_both_prc.rename(columns={'date':'index'}).set_index('index')
 
 st.header(f'{county_name}')
-as_prc = st.radio("Data presentation", ('Nominal', 'Per 10 000 inhabitants'))
+as_prc = st.radio("", ('Nominal', 'Per 10 000 inhabitants'))
 
 if as_prc == 'Nominal':
     st.subheader('Predicted and True new COVID cases')
