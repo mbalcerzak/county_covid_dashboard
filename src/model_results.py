@@ -111,8 +111,43 @@ def get_model_licenses():
         json.dump(licenses, f)
 
 
-if __name__ == "__main__":
-    get_predictions()
+def get_mae():
+    with open('data/counties_true_cases.json', 'r') as f:
+        true = json.load(f)
 
-    # get_model_list()
-    # get_model_licenses()
+    with open('data/model_list.json','r') as f:
+        model_list = json.load(f)
+
+    mae_dict = defaultdict(dict)
+    mse_dict = defaultdict(dict)
+
+    for model in model_list:
+        try:
+            with open(f'data/sample/model_results/{model}.json', 'r') as f:
+                pred = json.load(f)
+
+            for county in pred:
+                pred_ = pred[county]
+                true_ = true[county]
+
+                common_dates = [x for x in pred_ if x in true_]
+
+                if len(common_dates) > 0:
+                    mae_dict[county][model] = round(sum([abs(pred_[p_key] - true_[p_key]) for p_key in common_dates])/len(common_dates), 2)
+                    mse_dict[county][model] = round(sum([(pred_[p_key] - true_[p_key])**2 for p_key in common_dates])/len(common_dates), 2)
+            
+        except FileNotFoundError:
+            pass
+
+        print(mae_dict)
+        print(mse_dict)
+
+    with open(f'data/mae.json', 'w') as f:
+        json.dump(mae_dict, f)  
+
+    with open(f'data/mse.json', 'w') as f:
+        json.dump(mse_dict, f)  
+
+
+if __name__ == "__main__":
+    get_mae()

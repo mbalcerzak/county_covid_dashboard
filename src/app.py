@@ -44,6 +44,15 @@ def get_population():
 def get_models():
     return [x.rstrip('.json') for x in os.listdir('data/sample/model_results') if 'prc' not in x]
 
+@st.cache
+def get_mae_mse():
+    with open(f'data/mae.json', 'r') as f:
+        mae = json.load( f)  
+    with open(f'data/mse.json', 'r') as f:
+        mse = json.load( f)
+    return mae, mse 
+
+
 def get_county_df(df, county, colname):
     df = df[county]
     dates = list(df)
@@ -67,7 +76,6 @@ county_selected = st.sidebar.selectbox(
 model = st.sidebar.selectbox('Select which model would you like to see: ', sorted(models))
 
 county_name = counties[county_selected]
-
 
 # Nominal cases
 data_t = get_true_cases()
@@ -107,3 +115,16 @@ st.write(f"Population: {population}")
 
 st.subheader('Vaccination rates for the area')
 st.write(f'Fully vaccinated in {county_name}: {vacc_rates[county_selected]} %')
+
+#  MAEs and MSEs
+st.subheader(f'Each model performance for {county_name}')
+mae, mse = get_mae_mse()
+county_mae, county_mse = mae[county_selected], mse[county_selected]
+county_mae = dict(sorted(county_mae.items()))
+county_mse = dict(sorted(county_mse.items()))
+
+mae_df = pd.DataFrame(county_mae.items(), columns=['Model name', 'MAE'])
+mse_df = pd.DataFrame(county_mse.items(), columns=['Model name', 'MSE'])
+mae_mse_df = pd.merge(left=mae_df, right=mse_df, on='Model name', how='inner')
+
+st.dataframe(mae_mse_df)
