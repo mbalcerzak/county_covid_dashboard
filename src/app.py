@@ -68,7 +68,7 @@ vacc_rates = get_vacc_rates()
 models = get_models()
 populations = get_population()
 
-st.sidebar.markdown("[by MAB](https://github.com/mbalcerzak)")
+# st.sidebar.markdown("[by MAB](https://github.com/mbalcerzak)")
 county_selected = st.sidebar.selectbox(
     'Select county FIPS number: ', 
     sorted(counties, key=int), 
